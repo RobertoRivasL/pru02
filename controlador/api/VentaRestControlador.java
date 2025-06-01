@@ -16,17 +16,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Controlador REST para la API de ventas
- *
- * @author Roberto Rivas
- * @version 1.0
- */
 @RestController
 @RequestMapping("/api/ventas")
 public class VentaRestControlador {
@@ -47,9 +43,6 @@ public class VentaRestControlador {
         this.clienteServicio = clienteServicio;
     }
 
-    /**
-     * Busca productos con stock disponible
-     */
     @GetMapping("/productos")
     public List<Producto> obtenerProductosConStock() {
         return productoServicio.listar().stream()
@@ -57,9 +50,6 @@ public class VentaRestControlador {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtiene datos de un producto por ID
-     */
     @GetMapping("/productos/{id}")
     public ResponseEntity<Producto> obtenerProductoPorId(@PathVariable Long id) {
         try {
@@ -70,9 +60,6 @@ public class VentaRestControlador {
         }
     }
 
-    /**
-     * Obtiene datos de un cliente por ID
-     */
     @GetMapping("/clientes/{id}")
     public ResponseEntity<Cliente> obtenerClientePorId(@PathVariable Long id) {
         try {
@@ -83,9 +70,6 @@ public class VentaRestControlador {
         }
     }
 
-    /**
-     * Crea una nueva venta
-     */
     @PostMapping
     public ResponseEntity<Object> crearVenta(@Valid @RequestBody VentaDTO ventaDTO) {
         try {
@@ -98,9 +82,6 @@ public class VentaRestControlador {
         }
     }
 
-    /**
-     * Obtiene todas las ventas
-     */
     @GetMapping
     public List<VentaDTO> listarVentas() {
         List<Venta> ventas = ventaServicio.listarTodas();
@@ -109,9 +90,6 @@ public class VentaRestControlador {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtiene una venta por ID
-     */
     @GetMapping("/{id}")
     public ResponseEntity<Object> obtenerVentaPorId(@PathVariable Long id) {
         try {
@@ -122,9 +100,6 @@ public class VentaRestControlador {
         }
     }
 
-    /**
-     * Actualiza una venta
-     */
     @PutMapping("/{id}")
     public ResponseEntity<Object> actualizarVenta(@PathVariable Long id, @Valid @RequestBody VentaDTO ventaDTO) {
         try {
@@ -139,9 +114,6 @@ public class VentaRestControlador {
         }
     }
 
-    /**
-     * Anula una venta
-     */
     @PutMapping("/{id}/anular")
     public ResponseEntity<Object> anularVenta(@PathVariable Long id) {
         try {
@@ -154,15 +126,16 @@ public class VentaRestControlador {
         }
     }
 
-    /**
-     * Filtra ventas por rango de fechas
-     */
     @GetMapping("/filtrar")
     public ResponseEntity<Map<String, Object>> filtrarVentas(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
 
-        List<Venta> ventasFiltradas = ventaServicio.buscarPorRangoFechas(fechaInicio, fechaFin);
+        // Conversión a LocalDateTime para compatibilidad con VentaServicio
+        LocalDateTime fechaInicioDT = fechaInicio.atStartOfDay();
+        LocalDateTime fechaFinDT = fechaFin.atTime(LocalTime.MAX);
+
+        List<Venta> ventasFiltradas = ventaServicio.buscarPorRangoFechas(fechaInicioDT, fechaFinDT);
         List<VentaDTO> ventasDTO = ventasFiltradas.stream()
                 .map(ventaServicio::convertirADTO)
                 .collect(Collectors.toList());
