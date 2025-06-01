@@ -1,6 +1,5 @@
 package informviva.gest.repository;
 
-
 import informviva.gest.model.Cliente;
 import informviva.gest.model.Usuario;
 import informviva.gest.model.Venta;
@@ -11,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -58,63 +58,64 @@ public interface VentaRepositorio extends JpaRepository<Venta, Long> {
 
     /**
      * Busca ventas en un rango de fechas
+     * IMPORTANTE: Ahora recibe LocalDateTime para compatibilidad con el modelo
      *
-     * @param start Fecha de inicio
-     * @param end   Fecha de fin
+     * @param start Fecha y hora de inicio
+     * @param end   Fecha y hora de fin
      * @return Lista de ventas en el rango de fechas
      */
     @Query("SELECT v FROM Venta v WHERE v.fecha BETWEEN :start AND :end")
-    List<Venta> findByFechaBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    List<Venta> findByFechaBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Cuenta el número de ventas en un rango de fechas excluyendo un estado específico
      *
-     * @param inicio Fecha de inicio
-     * @param fin    Fecha de fin
+     * @param inicio Fecha y hora de inicio
+     * @param fin    Fecha y hora de fin
      * @param estado Estado a excluir
      * @return Número de ventas
      */
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.fecha BETWEEN :inicio AND :fin AND v.estado != :estado")
-    Long countByFechaBetweenAndEstadoNot(@Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin, @Param("estado") String estado);
+    Long countByFechaBetweenAndEstadoNot(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin, @Param("estado") String estado);
 
     /**
      * Calcula el total de ingresos en un rango de fechas
      *
-     * @param start Fecha de inicio
-     * @param end   Fecha de fin
+     * @param start Fecha y hora de inicio
+     * @param end   Fecha y hora de fin
      * @return Total de ingresos
      */
     @Query("SELECT COALESCE(SUM(v.total), 0) FROM Venta v WHERE v.fecha BETWEEN :start AND :end AND v.estado != 'ANULADA'")
-    Double calcularTotalIngresos(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    Double calcularTotalIngresos(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Cuenta el número de transacciones en un rango de fechas
      *
-     * @param start Fecha de inicio
-     * @param end   Fecha de fin
+     * @param start Fecha y hora de inicio
+     * @param end   Fecha y hora de fin
      * @return Número de transacciones
      */
     @Query("SELECT COUNT(v) FROM Venta v WHERE v.fecha BETWEEN :start AND :end AND v.estado != 'ANULADA'")
-    Long contarTransacciones(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    Long contarTransacciones(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
      * Cuenta la cantidad de artículos vendidos en un rango de fechas
      *
-     * @param start Fecha de inicio
-     * @param end   Fecha de fin
+     * @param start Fecha y hora de inicio
+     * @param end   Fecha y hora de fin
      * @return Cantidad de artículos vendidos
      */
     @Query("SELECT COALESCE(SUM(vd.cantidad), 0) FROM VentaDetalle vd JOIN vd.venta v WHERE v.fecha BETWEEN :start AND :end AND v.estado != 'ANULADA'")
-    Long contarArticulosVendidos(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    Long contarArticulosVendidos(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     /**
-     * Alias para contar artículos vendidos entre fechas (para mantener compatibilidad con la implementación)
+     * Método helper para contar artículos vendidos entre fechas (compatibilidad)
      *
-     * @param inicio Fecha de inicio
-     * @param fin    Fecha de fin
+     * @param inicio Fecha y hora de inicio
+     * @param fin    Fecha y hora de fin
      * @return Cantidad de artículos vendidos
      */
-    default Long countArticulosVendidosBetweenFechas(LocalDate inicio, LocalDate fin) {
+    default Long countArticulosVendidosBetweenFechas(LocalDateTime inicio, LocalDateTime fin) {
         return contarArticulosVendidos(inicio, fin);
     }
 
