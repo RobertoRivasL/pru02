@@ -13,6 +13,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -75,7 +77,7 @@ public class VentaServicioImpl implements VentaServicio {
     }
 
     @Override
-    public List<Venta> buscarPorRangoFechas(LocalDate inicio, LocalDate fin) {
+    public List<Venta> buscarPorRangoFechas(LocalDateTime inicio, LocalDateTime fin) {
         return ventaRepositorio.findByFechaBetween(inicio, fin);
     }
 
@@ -119,8 +121,8 @@ public class VentaServicioImpl implements VentaServicio {
     }
 
     @Override
-    public Double calcularTotalVentas(LocalDate inicio, LocalDate fin) {
-        List<Venta> ventas = buscarPorRangoFechas(inicio, fin);
+    public Double calcularTotalVentas(LocalDateTime inicio, LocalDateTime fin) {
+        List<Venta> ventas = ventaRepositorio.findByFechaBetween(inicio, fin);
         return ventas.stream()
                 .filter(v -> !ESTADO_ANULADA.equals(v.getEstado()))
                 .mapToDouble(Venta::getTotal)
@@ -129,7 +131,7 @@ public class VentaServicioImpl implements VentaServicio {
 
     @Override
     public Double calcularTotalVentas() {
-        List<Venta> ventas = listarTodas();
+        List<Venta> ventas = ventaRepositorio.findAll();
         return ventas.stream()
                 .filter(v -> !ESTADO_ANULADA.equals(v.getEstado()))
                 .mapToDouble(Venta::getTotal)
@@ -137,17 +139,17 @@ public class VentaServicioImpl implements VentaServicio {
     }
 
     @Override
-    public Long contarTransacciones(LocalDate inicio, LocalDate fin) {
+    public Long contarTransacciones(LocalDateTime inicio, LocalDateTime fin) {
         return ventaRepositorio.countByFechaBetweenAndEstadoNot(inicio, fin, ESTADO_ANULADA);
     }
 
     @Override
-    public Long contarArticulosVendidos(LocalDate inicio, LocalDate fin) {
+    public Long contarArticulosVendidos(LocalDateTime inicio, LocalDateTime fin) {
         return ventaRepositorio.countArticulosVendidosBetweenFechas(inicio, fin);
     }
 
     @Override
-    public Double calcularTicketPromedio(LocalDate inicio, LocalDate fin) {
+    public Double calcularTicketPromedio(LocalDateTime inicio, LocalDateTime fin) {
         Double totalVentas = calcularTotalVentas(inicio, fin);
         Long totalTransacciones = contarTransacciones(inicio, fin);
         return (totalTransacciones == 0) ? 0.0 : totalVentas / totalTransacciones;
@@ -164,7 +166,9 @@ public class VentaServicioImpl implements VentaServicio {
     @Override
     public Long contarVentasHoy() {
         LocalDate hoy = LocalDate.now();
-        return contarTransacciones(hoy, hoy);
+        LocalDateTime inicio = hoy.atStartOfDay();
+        LocalDateTime fin = hoy.atTime(LocalTime.MAX);
+        return contarTransacciones(inicio, fin);
     }
 
     @Override

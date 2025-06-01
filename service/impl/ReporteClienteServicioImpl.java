@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -77,7 +78,7 @@ public class ReporteClienteServicioImpl implements ReporteClienteServicio {
             // Calcular promedios
             if (!clientesConCompras.isEmpty()) {
                 BigDecimal promedioComprasPorCliente = ventasTotales.divide(
-                        BigDecimal.valueOf(clientesConCompras.size()), 2, BigDecimal.ROUND_HALF_UP);
+                        BigDecimal.valueOf(clientesConCompras.size()), 2, RoundingMode.HALF_UP);
                 estadisticas.put("promedioComprasPorCliente", promedioComprasPorCliente);
 
                 int totalTransacciones = clientesConCompras.stream()
@@ -85,7 +86,7 @@ public class ReporteClienteServicioImpl implements ReporteClienteServicio {
                         .sum();
 
                 BigDecimal ticketPromedio = ventasTotales.divide(
-                        BigDecimal.valueOf(totalTransacciones), 2, BigDecimal.ROUND_HALF_UP);
+                        BigDecimal.valueOf(totalTransacciones), 2, RoundingMode.HALF_UP);
                 estadisticas.put("ticketPromedio", ticketPromedio);
 
                 estadisticas.put("totalTransacciones", totalTransacciones);
