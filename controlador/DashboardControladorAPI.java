@@ -1,10 +1,5 @@
 package informviva.gest.controlador;
 
-/**
- * @author Roberto Rivas
- * @version 2.0
- */
-
 import informviva.gest.dto.MetricaDTO;
 import informviva.gest.dto.VentaPorCategoriaDTO;
 import informviva.gest.dto.VentaPorPeriodoDTO;
@@ -20,17 +15,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * API REST para los datos del dashboard
- *
- * @author Roberto Rivas
- * @version 2.1
- */
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardControladorAPI {
@@ -39,13 +30,6 @@ public class DashboardControladorAPI {
     private final ProductoServicio productoServicio;
     private final ReporteServicio reporteServicio;
 
-    /**
-     * Constructor con inyección de dependencias
-     *
-     * @param ventaServicio    Servicio de ventas
-     * @param productoServicio Servicio de productos
-     * @param reporteServicio  Servicio de reportes
-     */
     public DashboardControladorAPI(VentaServicio ventaServicio,
                                    ProductoServicio productoServicio,
                                    ReporteServicio reporteServicio) {
@@ -54,23 +38,17 @@ public class DashboardControladorAPI {
         this.reporteServicio = reporteServicio;
     }
 
-    /**
-     * Endpoint para obtener datos actualizados para el dashboard
-     */
     @GetMapping("/datos")
     public ResponseEntity<Map<String, Object>> obtenerDatosDashboard(
             @RequestParam(required = false, defaultValue = "semana") String periodo) {
 
-        // Determinar rango de fechas según el período
         LocalDate hoy = LocalDate.now();
         LocalDate inicio;
         LocalDate fin = hoy;
 
-        // Períodos anteriores para comparación
         LocalDate inicioAnterior;
         LocalDate finAnterior;
 
-        // Refactorizado para eliminar código duplicado
         switch (periodo) {
             case "hoy":
                 inicio = hoy;
@@ -101,19 +79,25 @@ public class DashboardControladorAPI {
                 break;
         }
 
+        // Conversión a LocalDateTime para los métodos de VentaServicio
+        LocalDateTime inicioDT = inicio.atStartOfDay();
+        LocalDateTime finDT = fin.atTime(LocalTime.MAX);
+        LocalDateTime inicioAnteriorDT = inicioAnterior.atStartOfDay();
+        LocalDateTime finAnteriorDT = finAnterior.atTime(LocalTime.MAX);
+
         // Métricas para el período actual
-        Double totalVentas = ventaServicio.calcularTotalVentas(inicio, fin);
-        Long totalTransacciones = ventaServicio.contarTransacciones(inicio, fin);
-        Double ticketPromedio = ventaServicio.calcularTicketPromedio(inicio, fin);
+        Double totalVentas = ventaServicio.calcularTotalVentas(inicioDT, finDT);
+        Long totalTransacciones = ventaServicio.contarTransacciones(inicioDT, finDT);
+        Double ticketPromedio = ventaServicio.calcularTicketPromedio(inicioDT, finDT);
         Long clientesNuevos = reporteServicio.contarClientesNuevosEntreFechas(inicio, fin);
-        Long productosVendidos = ventaServicio.contarArticulosVendidos(inicio, fin);
+        Long productosVendidos = ventaServicio.contarArticulosVendidos(inicioDT, finDT);
 
         // Métricas para el período anterior
-        Double totalVentasAnterior = ventaServicio.calcularTotalVentas(inicioAnterior, finAnterior);
-        Long totalTransaccionesAnterior = ventaServicio.contarTransacciones(inicioAnterior, finAnterior);
-        Double ticketPromedioAnterior = ventaServicio.calcularTicketPromedio(inicioAnterior, finAnterior);
+        Double totalVentasAnterior = ventaServicio.calcularTotalVentas(inicioAnteriorDT, finAnteriorDT);
+        Long totalTransaccionesAnterior = ventaServicio.contarTransacciones(inicioAnteriorDT, finAnteriorDT);
+        Double ticketPromedioAnterior = ventaServicio.calcularTicketPromedio(inicioAnteriorDT, finAnteriorDT);
         Long clientesNuevosAnterior = reporteServicio.contarClientesNuevosEntreFechas(inicioAnterior, finAnterior);
-        Long productosVendidosAnterior = ventaServicio.contarArticulosVendidos(inicioAnterior, finAnterior);
+        Long productosVendidosAnterior = ventaServicio.contarArticulosVendidos(inicioAnteriorDT, finAnteriorDT);
 
         // Cálculo de porcentajes de cambio
         Double porcentajeCambioVentas = ventaServicio.calcularPorcentajeCambio(totalVentas, totalVentasAnterior);
@@ -128,26 +112,20 @@ public class DashboardControladorAPI {
                 productosVendidos != null ? productosVendidos.doubleValue() : 0.0,
                 productosVendidosAnterior != null ? productosVendidosAnterior.doubleValue() : 0.0);
 
-        // Crear DTOs para las métricas
         MetricaDTO ventasMetrica = new MetricaDTO(totalVentas, porcentajeCambioVentas);
         MetricaDTO transaccionesMetrica = new MetricaDTO(totalTransacciones, porcentajeCambioTransacciones);
         MetricaDTO ticketMetrica = new MetricaDTO(ticketPromedio, porcentajeCambioTicket);
         MetricaDTO clientesMetrica = new MetricaDTO(clientesNuevos, porcentajeCambioClientes);
         MetricaDTO productosMetrica = new MetricaDTO(productosVendidos, porcentajeCambioProductos);
 
-        // Ventas por día/período para gráfico
         List<VentaPorPeriodoDTO> ventasPorPeriodo = reporteServicio.obtenerVentasPorPeriodoEntreFechas(inicio, fin);
-
-        // Ventas por categoría para gráfico
         List<VentaPorCategoriaDTO> ventasPorCategoria = reporteServicio.obtenerVentasPorCategoriaEntreFechas(inicio, fin);
 
-        // Ventas recientes
-        List<Venta> ventasRecientes = ventaServicio.buscarPorRangoFechas(inicio, fin)
+        List<Venta> ventasRecientes = ventaServicio.buscarPorRangoFechas(inicioDT, finDT)
                 .stream()
                 .limit(10)
                 .collect(Collectors.toList());
 
-        // Crear DTOs simplificados para ventas recientes
         List<Map<String, Object>> ventasRecientesDTO = ventasRecientes.stream()
                 .map(v -> {
                     Map<String, Object> dto = new HashMap<>();
@@ -161,10 +139,8 @@ public class DashboardControladorAPI {
                 })
                 .collect(Collectors.toList());
 
-        // Productos con bajo stock - Corregido para usar la instancia y no el tipo
         List<Producto> productosConBajoStock = productoServicio.listarConBajoStock(5);
 
-        // Crear DTOs simplificados para productos con bajo stock
         List<Map<String, Object>> productosConBajoStockDTO = productosConBajoStock.stream()
                 .map(p -> {
                     Map<String, Object> dto = new HashMap<>();
@@ -177,7 +153,6 @@ public class DashboardControladorAPI {
                 })
                 .collect(Collectors.toList());
 
-        // Preparar respuesta
         Map<String, Object> metricas = new HashMap<>();
         metricas.put("ventas", ventasMetrica);
         metricas.put("transacciones", transaccionesMetrica);

@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -85,7 +87,9 @@ public class InicioControlador {
     private void cargarVentasDelDia(Model model) {
         try {
             LocalDate hoy = LocalDate.now();
-            Long ventasHoy = ventaServicio.contarTransacciones(hoy, hoy);
+            LocalDateTime inicioDia = hoy.atStartOfDay();
+            LocalDateTime finDia = hoy.atTime(LocalTime.MAX);
+            Long ventasHoy = ventaServicio.contarTransacciones(inicioDia, finDia);
             model.addAttribute(RutasConstantes.VENTAS_HOY, ventasHoy);
         } catch (Exception e) {
             logger.error("Error contando ventas del día: {}", e.getMessage());
@@ -123,7 +127,9 @@ public class InicioControlador {
         try {
             LocalDate hoy = LocalDate.now();
             LocalDate inicioMes = hoy.withDayOfMonth(1);
-            List<Venta> ventas = ventaServicio.buscarPorRangoFechas(inicioMes, hoy);
+            LocalDateTime inicioMesDT = inicioMes.atStartOfDay();
+            LocalDateTime hoyDT = hoy.atTime(LocalTime.MAX);
+            List<Venta> ventas = ventaServicio.buscarPorRangoFechas(inicioMesDT, hoyDT);
             if (ventas.size() > LIMITE_VENTAS_RECIENTES) {
                 ventas = ventas.subList(0, LIMITE_VENTAS_RECIENTES);
             }
@@ -144,47 +150,37 @@ public class InicioControlador {
         model.addAttribute("resumenVentas", resumen);
     }
 
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_VENTAS')")
     @GetMapping("/panel-ventas")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_VENTAS')")
     public String mostrarPanelVentas(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             Model model) {
         try {
-            // Crear fechas por defecto
             LocalDate hoy = LocalDate.now();
             LocalDate inicioMes = hoy.withDayOfMonth(1);
 
-            // Procesar fechas del filtro si existen
             LocalDate fechaInicio = inicioMes;
             LocalDate fechaFin = hoy;
 
-            try {
-                if (startDate != null && !startDate.isEmpty()) {
-                    fechaInicio = LocalDate.parse(startDate);
-                }
-                if (endDate != null && !endDate.isEmpty()) {
-                    fechaFin = LocalDate.parse(endDate);
-                }
-            } catch (Exception e) {
-                logger.warn("Error al parsear fechas del filtro: {}", e.getMessage());
-                // Si hay error en el formato de fecha, usamos las fechas por defecto
+            if (startDate != null && !startDate.isEmpty()) {
+                fechaInicio = LocalDate.parse(startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                fechaFin = LocalDate.parse(endDate);
             }
 
-            // Validar que la fecha de inicio no sea posterior a la fecha fin
             if (fechaInicio.isAfter(fechaFin)) {
                 fechaInicio = inicioMes;
                 fechaFin = hoy;
             }
 
-            // Agregar fechas al modelo para los inputs
             model.addAttribute("startDate", fechaInicio);
             model.addAttribute("endDate", fechaFin);
 
-            // Generar el resumen con las fechas correspondientes
             VentaResumenDTO resumenVentas = reporteServicio.generarResumenVentas(fechaInicio, fechaFin);
 
-            // Asegurar que no haya valores nulos para evitar errores en el JavaScript
+            // Inicializar listas vacías si son null
             if (resumenVentas.getVentasPorVendedor() == null) {
                 resumenVentas.setVentasPorVendedor(Collections.emptyList());
             }
@@ -198,43 +194,18 @@ public class InicioControlador {
                 resumenVentas.setProductosMasVendidos(Collections.emptyList());
             }
 
-            // Agregar al modelo con el nombre que espera la plantilla
             model.addAttribute("ventaSummary", resumenVentas);
 
         } catch (Exception e) {
             logger.error("Error cargando datos para panel de ventas: {}", e.getMessage());
-            // Crear un DTO vacío con todas las listas inicializadas
-            VentaResumenDTO dto = new VentaResumenDTO();
-            dto.setTotalVentas(BigDecimal.ZERO);
-            dto.setTotalTransacciones(0L);
-            dto.setTicketPromedio(BigDecimal.ZERO);
-            dto.setClientesNuevos(0L);
-            dto.setProductosMasVendidos(Collections.emptyList());
-            dto.setVentasPorPeriodo(Collections.emptyList());
-            dto.setVentasPorCategoria(Collections.emptyList());
-            dto.setVentasPorVendedor(Collections.emptyList());
-
+            // Crear DTO vacío
+            VentaResumenDTO dto = crearResumenVentasVacio();
             model.addAttribute("ventaSummary", dto);
-
-            // Agregar fechas por defecto en caso de error
-            LocalDate hoy = LocalDate.now();
-            LocalDate inicioMes = hoy.withDayOfMonth(1);
-            model.addAttribute("startDate", inicioMes);
-            model.addAttribute("endDate", hoy);
+            model.addAttribute("startDate", LocalDate.now().withDayOfMonth(1));
+            model.addAttribute("endDate", LocalDate.now());
         }
+
         return "panel-ventas";
-    }
-
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN','ROLE_PRODUCTOS')")
-    @GetMapping("/productos")
-    public String mostrarGestionProductos() {
-        return "productos";
-    }
-
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/clientes-desde-inicio")
-    public String mostrarClientesDesdeInicio() {
-        return "/clientes/lista-clientes";
     }
 
     @GetMapping("/contacto")
@@ -242,5 +213,3 @@ public class InicioControlador {
         return "contacto";
     }
 }
-
-

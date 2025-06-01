@@ -83,13 +83,12 @@ public class ClienteControlador {
      * Ruta: /clientes/nuevo
      * Vista: templates/clientes/formulario.html
      */
-    @GetMapping("/nuevo")
+    @GetMapping("/nuevo")  // Cambiar de "/formulario" a "/nuevo"
     @PreAuthorize("hasAnyRole('ADMIN', 'VENTAS')")
     public String mostrarFormularioNuevo(Model modelo) {
         modelo.addAttribute("cliente", new Cliente());
         modelo.addAttribute("esNuevo", true);
-
-        return "clientes/formulario"; // → templates/clientes/formulario.html
+        return "clientes/formulario";
     }
 
     /**
