@@ -12,7 +12,7 @@ import informviva.gest.model.Venta;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -82,7 +82,7 @@ public interface VentaServicio {
      * @param fin    Fecha de fin
      * @return Lista de ventas en el rango
      */
-    List<Venta> buscarPorRangoFechas(LocalDate inicio, LocalDate fin);
+    List<Venta> buscarPorRangoFechas(LocalDateTime inicio, LocalDateTime fin);
 
     /**
      * Busca ventas por cliente
@@ -131,7 +131,7 @@ public interface VentaServicio {
      * @param fin    Fecha de fin
      * @return Monto total de ventas
      */
-    Double calcularTotalVentas(LocalDate inicio, LocalDate fin);
+    Double calcularTotalVentas(LocalDateTime inicio, LocalDateTime fin);
 
     /**
      * Obtiene el monto total de todas las ventas
@@ -147,7 +147,7 @@ public interface VentaServicio {
      * @param fin    Fecha de fin
      * @return Número total de transacciones
      */
-    Long contarTransacciones(LocalDate inicio, LocalDate fin);
+    Long contarTransacciones(LocalDateTime inicio, LocalDateTime fin);
 
     /**
      * Obtiene el número total de artículos vendidos en un rango de fechas
@@ -156,7 +156,7 @@ public interface VentaServicio {
      * @param fin    Fecha de fin
      * @return Número total de artículos vendidos
      */
-    Long contarArticulosVendidos(LocalDate inicio, LocalDate fin);
+    Long contarArticulosVendidos(LocalDateTime inicio, LocalDateTime fin);
 
     /**
      * Calcula el ticket promedio en un rango de fechas
@@ -165,7 +165,7 @@ public interface VentaServicio {
      * @param fin    Fecha de fin
      * @return Ticket promedio
      */
-    Double calcularTicketPromedio(LocalDate inicio, LocalDate fin);
+    Double calcularTicketPromedio(LocalDateTime inicio, LocalDateTime fin);
 
     /**
      * Calcula el porcentaje de cambio entre dos períodos

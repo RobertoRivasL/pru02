@@ -5,7 +5,6 @@ package informviva.gest.service;
  * @version 2.0
  **/
 
-
 import informviva.gest.dto.ProductoVendidoDTO;
 import informviva.gest.dto.VentaPorCategoriaDTO;
 import informviva.gest.dto.VentaPorPeriodoDTO;
@@ -16,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -30,9 +31,15 @@ public class ReporteServicio {
     public VentaResumenDTO generarResumenVentas(LocalDate startDate, LocalDate endDate) {
         VentaResumenDTO resumen = new VentaResumenDTO();
 
-        resumen.setTotalVentas(reporteRepository.sumarTotalVentasEntreFechas(startDate, endDate));
-        resumen.setTotalTransacciones(reporteRepository.contarVentasEntreFechas(startDate, endDate));
-        resumen.setTotalArticulosVendidos(reporteRepository.sumarCantidadArticulosVendidosEntreFechas(startDate, endDate));
+        // Convertir LocalDate a LocalDateTime para consultas con campos de tipo LocalDateTime
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        resumen.setTotalVentas(reporteRepository.sumarTotalVentasEntreFechas(startDateTime, endDateTime));
+        resumen.setTotalTransacciones(reporteRepository.contarVentasEntreFechas(startDateTime, endDateTime));
+        resumen.setTotalArticulosVendidos(reporteRepository.sumarCantidadArticulosVendidosEntreFechas(startDateTime, endDateTime));
+
+        // Para clientes nuevos, usar LocalDate directamente si el campo es LocalDate
         resumen.setClientesNuevos(reporteRepository.contarClientesNuevosEntreFechas(startDate, endDate));
 
         BigDecimal ticketPromedio = BigDecimal.ZERO;
@@ -46,7 +53,7 @@ public class ReporteServicio {
         resumen.setPorcentajeCambioTicketPromedio(null);
         resumen.setPorcentajeCambioClientesNuevos(null);
 
-        List<ProductoVendidoDTO> productosVendidos = reporteRepository.obtenerProductosMasVendidosEntreFechas(startDate, endDate);
+        List<ProductoVendidoDTO> productosVendidos = reporteRepository.obtenerProductosMasVendidosEntreFechas(startDateTime, endDateTime);
 
         BigDecimal totalVentasGeneral = resumen.getTotalVentas() != null ? resumen.getTotalVentas() : BigDecimal.ZERO;
         if (totalVentasGeneral.compareTo(BigDecimal.ZERO) > 0) {
@@ -62,22 +69,45 @@ public class ReporteServicio {
         }
         resumen.setProductosMasVendidos(productosVendidos);
 
-        resumen.setVentasPorPeriodo(reporteRepository.obtenerVentasPorPeriodoEntreFechas(startDate, endDate));
-        resumen.setVentasPorCategoria(reporteRepository.obtenerVentasPorCategoriaEntreFechas(startDate, endDate));
-        resumen.setVentasPorVendedor(reporteRepository.obtenerVentasPorVendedorEntreFechas(startDate, endDate));
+        resumen.setVentasPorPeriodo(reporteRepository.obtenerVentasPorPeriodoEntreFechas(startDateTime, endDateTime));
+        resumen.setVentasPorCategoria(reporteRepository.obtenerVentasPorCategoriaEntreFechas(startDateTime, endDateTime));
+        resumen.setVentasPorVendedor(reporteRepository.obtenerVentasPorVendedorEntreFechas(startDateTime, endDateTime));
 
         return resumen;
     }
 
     public List<VentaPorPeriodoDTO> obtenerVentasPorPeriodoEntreFechas(LocalDate inicio, LocalDate fin) {
-        return reporteRepository.obtenerVentasPorPeriodoEntreFechas(inicio, fin);
+        // Convertir LocalDate a LocalDateTime
+        LocalDateTime startDateTime = inicio.atStartOfDay();
+        LocalDateTime endDateTime = fin.atTime(LocalTime.MAX);
+
+        return reporteRepository.obtenerVentasPorPeriodoEntreFechas(startDateTime, endDateTime);
     }
 
     public List<VentaPorCategoriaDTO> obtenerVentasPorCategoriaEntreFechas(LocalDate inicio, LocalDate fin) {
-        return reporteRepository.obtenerVentasPorCategoriaEntreFechas(inicio, fin);
+        // Convertir LocalDate a LocalDateTime
+        LocalDateTime startDateTime = inicio.atStartOfDay();
+        LocalDateTime endDateTime = fin.atTime(LocalTime.MAX);
+
+        return reporteRepository.obtenerVentasPorCategoriaEntreFechas(startDateTime, endDateTime);
     }
 
     public Long contarClientesNuevosEntreFechas(LocalDate inicio, LocalDate fin) {
+        // Este método usa LocalDate directamente porque el campo fechaRegistro en Cliente es LocalDate
         return reporteRepository.contarClientesNuevosEntreFechas(inicio, fin);
+    }
+
+    /**
+     * Método auxiliar para convertir LocalDate a LocalDateTime inicio del día
+     */
+    private LocalDateTime toStartOfDay(LocalDate date) {
+        return date != null ? date.atStartOfDay() : null;
+    }
+
+    /**
+     * Método auxiliar para convertir LocalDate a LocalDateTime fin del día
+     */
+    private LocalDateTime toEndOfDay(LocalDate date) {
+        return date != null ? date.atTime(LocalTime.MAX) : null;
     }
 }
